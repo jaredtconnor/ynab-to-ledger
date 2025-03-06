@@ -9,13 +9,13 @@ This is a Go port of the [Ruby version](https://github.com/pgr0ss/ynab_to_ledger
 ### Using Go Install
 
 ```bash
-go install github.com/jaredtconnor/ynab_to_ledger_go@latest
+go install github.com/jaredtconnor/ynab-to-ledger@latest
 ```
 
 ### Building from Source
 
 ```bash
-git clone https://github.com/jaredtconnor/ynab_to_ledger_go.git
+git clone https://github.com/jaredtconnor/ynab-to-ledger.git
 cd ynab_to_ledger_go
 go build
 ```
@@ -36,19 +36,19 @@ Next, run the tool to convert the export to a Ledger file:
 
 ```bash
 # Basic usage (outputs to ynab_ledger.dat by default)
-ynab_to_ledger_go "My Budget as of 2023-03-05 1007 PM - Register.csv"
+ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv"
 
 # Specify custom output file
-ynab_to_ledger_go "My Budget as of 2023-03-05 1007 PM - Register.csv" --output my_budget.dat
+ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv" --output my_budget.dat
 
 # Or with the short flag
-ynab_to_ledger_go "My Budget as of 2023-03-05 1007 PM - Register.csv" -o my_budget.dat
+ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv" -o my_budget.dat
 
 # Print the version
-ynab_to_ledger_go version
+ynab-to-ledger version
 
 # Show help
-ynab_to_ledger_go --help
+ynab-to-ledger --help
 ```
 
 This will write out a ledger journal file in the current directory.
