@@ -1,10 +1,23 @@
-project_name: convert
+version: 2
+project_name: ynab-to-ledger
 builds:
-  - main: ./cmd/convert
+  - id: ynab-to-ledger
+    binary: ynab-to-ledger
+    main: ./main.go
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
+    env:
+      - CGO_ENABLED=0
 archives:
-  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - id: default
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    files:
+      - README.md
+      - LICENSE*
+    format_overrides:
+      - goos: windows
+        format: zip
 checksum:
   name_template: "checksums.txt"
 release:
