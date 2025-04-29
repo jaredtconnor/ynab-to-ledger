@@ -5,10 +5,50 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
+
+type Mapping struct {
+	Accounts   map[string]string `yaml:"accounts"`
+	Categories map[string]string `yaml:"categories"`
+}
+
+func loadMapping(path string) (*Mapping, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var m Mapping
+	if err := yaml.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+func mapAccount(mapping *Mapping, ynabAccount string) string {
+	if acct, ok := mapping.Accounts[ynabAccount]; ok {
+		return acct
+	}
+	if acct, ok := mapping.Accounts["*"]; ok {
+		return acct
+	}
+	return "Assets:Unknown"
+}
+
+func mapCategory(mapping *Mapping, ynabCategory string) string {
+	if cat, ok := mapping.Categories[ynabCategory]; ok {
+		return cat
+	}
+	if cat, ok := mapping.Categories["*"]; ok {
+		return cat
+	}
+	return "Expenses:Unknown"
+}
 
 func convertFile(inputFile, outputFile string) error {
 	// Open the input file
@@ -18,12 +58,18 @@ func convertFile(inputFile, outputFile string) error {
 	}
 	defer file.Close()
 
+	// Load mapping
+	mapping, err := loadMapping(mappingFile)
+	if err != nil {
+		return fmt.Errorf("error loading mapping: %w", err)
+	}
+
 	// Print a preview of the file to help diagnose CSV issues
 	fmt.Println("File preview:")
 	printFilePreview(inputFile)
 
 	// Process the CSV and get the ledger output
-	output, err := process(file)
+	output, err := process(file, mapping)
 	if err != nil {
 		return fmt.Errorf("error processing file: %w", err)
 	}
@@ -38,7 +84,7 @@ func convertFile(inputFile, outputFile string) error {
 	return nil
 }
 
-func process(r io.Reader) (string, error) {
+func process(r io.Reader, mapping *Mapping) (string, error) {
 	// Read the entire file content
 	content, err := io.ReadAll(r)
 	if err != nil {
@@ -72,7 +118,7 @@ func process(r io.Reader) (string, error) {
 	if err != nil {
 		// If standard parsing fails, try the fallback method
 		fmt.Println("Standard CSV parsing failed, trying fallback method...")
-		return processFallback(fileContent, delimiter)
+		return processFallback(fileContent, delimiter, mapping)
 	}
 
 	// Find the column indices for the fields we need
@@ -102,7 +148,10 @@ func process(r io.Reader) (string, error) {
 			return "", fmt.Errorf("error reading row: %w", err)
 		}
 
-		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx)
+		ledgerAccount := mapAccount(mapping, row[accountIdx])
+		ledgerCategory := mapCategory(mapping, row[categoryGroupCategoryIdx])
+
+		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory)
 		if entry != "" {
 			entries = append(entries, entry)
 		}
@@ -116,7 +165,7 @@ func process(r io.Reader) (string, error) {
 	return strings.Join(entries, "\n"), nil
 }
 
-func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx int) string {
+func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx int, ledgerAccount, ledgerCategory string) string {
 	inflow := blankIfZero(row[inflowIdx])
 	outflow := blankIfZero(row[outflowIdx])
 
@@ -139,7 +188,7 @@ func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCateg
 		parts := strings.Split(row[payeeIdx], ":")
 		source = strings.TrimSpace(parts[len(parts)-1])
 	} else {
-		source = row[categoryGroupCategoryIdx]
+		source = ledgerCategory
 	}
 
 	if source == "" {
@@ -153,7 +202,7 @@ func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCateg
 	}
 
 	return fmt.Sprintf("%s/%s/%s %s%s\n    %s  %s\n    %s  %s",
-		year, month, day, row[payeeIdx], memoText, source, outflow, row[accountIdx], inflow)
+		year, month, day, row[payeeIdx], memoText, source, outflow, ledgerAccount, inflow)
 }
 
 func blankIfZero(amount string) string {
@@ -345,7 +394,7 @@ func fixBareQuotes(content, delimiter string) string {
 }
 
 // processFallback is a fallback method to parse the CSV file if the standard CSV parser fails
-func processFallback(content, delimiter string) (string, error) {
+func processFallback(content, delimiter string, mapping *Mapping) (string, error) {
 	lines := strings.Split(content, "\n")
 	if len(lines) < 2 {
 		return "", fmt.Errorf("not enough lines in the CSV file")
@@ -384,7 +433,10 @@ func processFallback(content, delimiter string) (string, error) {
 			continue
 		}
 
-		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx)
+		ledgerAccount := mapAccount(mapping, row[accountIdx])
+		ledgerCategory := mapCategory(mapping, row[categoryGroupCategoryIdx])
+
+		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory)
 		if entry != "" {
 			entries = append(entries, entry)
 		}

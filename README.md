@@ -27,31 +27,62 @@ First, make sure your budget settings in YNAB match these options, so that the e
 - Make sure the setting Number Format is set to "123.45" or similar (the decimal point should be `.`, not `,`).
 - Make sure the date format is set to the American format "mm/dd/yyyy", for example, "12/30/2015".
 
-Now, export your data from YNAB:
+### Export Your Data
 
-* Go to My Budget -> Export budget data
-* Download and unzip the archive
+1. Go to My Budget -> Export budget data
+2. Download and unzip the archive
+3. Use the **Register.csv** file (not the Budget.csv)
 
-Next, run the tool to convert the export to a Ledger file:
+### Generate Chart of Accounts
+
+Before converting your YNAB data, you can generate a Chart of Accounts mapping file from your Register CSV:
 
 ```bash
-# Basic usage (outputs to ynab_ledger.dat by default)
-ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv"
-
-# Specify custom output file
-ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv" --output my_budget.dat
-
-# Or with the short flag
-ynab-to-ledger "My Budget as of 2023-03-05 1007 PM - Register.csv" -o my_budget.dat
-
-# Print the version
-ynab-to-ledger version
-
-# Show help
-ynab-to-ledger --help
+# Generate a coa.yaml from your Register CSV
+ynab_to_ledger_go gen-coa "Register.csv" coa.yaml
 ```
 
-This will write out a ledger journal file in the current directory.
+This will create a `coa.yaml` file that maps YNAB accounts and categories to Ledger accounts. You can edit this file to customize the mapping.
+
+Example `coa.yaml`:
+```yaml
+accounts:
+  "Chase Checking":    Assets:Bank:Chase:Checking
+  "Citi Costco Visa":  Liabilities:CreditCard:Citi:Costco
+  "*":                 Assets:Unknown
+
+categories:
+  "Rent/Mortgage":     Expenses:Housing:Mortgage
+  "Dining Out":        Expenses:Food:Dining
+  "Groceries":         Expenses:Food:Groceries
+  "*":                 Expenses:Unknown
+```
+
+### Convert to Ledger Format
+
+```bash
+# Basic usage (uses default coa.yaml in current directory)
+ynab-to-ledger "Register.csv"
+
+# Specify custom output file
+ynab-to-ledger "Register.csv" --output my_budget.dat
+
+# Use a custom Chart of Accounts mapping
+ynab-to-ledger "Register.csv" --mapping custom_coa.yaml
+
+# Combine both options
+ynab-to-ledger "Register.csv" -o my_budget.dat -m custom_coa.yaml
+
+Available flags:
+- `-o, --output string`: Output file path (default "ynab_ledger.dat")
+- `-m, --mapping string`: Chart of accounts mapping file (default "coa.yaml")
+- `-h, --help`: Help for ynab_to_ledger
+
+### Commands
+- `ynab-to-ledger [file]`: Convert YNAB Register CSV to Ledger format
+- `ynab-to-ledger gen-coa [register.csv] [coa.yaml]`: Generate Chart of Accounts from Register CSV
+- `ynab-to-ledger version`: Print the version number
+- `ynab-to-ledger help`: Help about any command
 
 ## Reporting
 
@@ -66,13 +97,13 @@ ledger register -f ynab_ledger.dat --monthly
 You can filter the register down to just the category you care about:
 
 ```bash
-ledger register -f ynab_ledger.dat --monthly "Dining Out"
+ledger register -f ynab_ledger.dat --monthly "Expenses:Food:Dining"
 ```
 
 And you can even see a running average of the amount:
 
 ```bash
-ledger register -f ynab_ledger.dat --monthly --average "Dining Out"
+ledger register -f ynab_ledger.dat --monthly --average "Expenses:Food:Dining"
 ```
 
 Balances for a single month summed by category:
