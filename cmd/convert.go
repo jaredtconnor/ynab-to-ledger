@@ -151,7 +151,7 @@ func process(r io.Reader, mapping *Mapping) (string, error) {
 		ledgerAccount := mapAccount(mapping, row[accountIdx])
 		ledgerCategory := mapCategory(mapping, row[categoryGroupCategoryIdx])
 
-		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory)
+		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory, mapping)
 		if entry != "" {
 			entries = append(entries, entry)
 		}
@@ -165,7 +165,7 @@ func process(r io.Reader, mapping *Mapping) (string, error) {
 	return strings.Join(entries, "\n"), nil
 }
 
-func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx int, ledgerAccount, ledgerCategory string) string {
+func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx int, ledgerAccount, ledgerCategory string, mapping *Mapping) string {
 	inflow := blankIfZero(row[inflowIdx])
 	outflow := blankIfZero(row[outflowIdx])
 
@@ -186,7 +186,8 @@ func ledgerEntry(row []string, accountIdx, dateIdx, payeeIdx, categoryGroupCateg
 			return ""
 		}
 		parts := strings.Split(row[payeeIdx], ":")
-		source = strings.TrimSpace(parts[len(parts)-1])
+		transferAccount := strings.TrimSpace(parts[len(parts)-1])
+		source = mapAccount(mapping, transferAccount) // Map the transfer account name
 	} else {
 		source = ledgerCategory
 	}
@@ -436,7 +437,7 @@ func processFallback(content, delimiter string, mapping *Mapping) (string, error
 		ledgerAccount := mapAccount(mapping, row[accountIdx])
 		ledgerCategory := mapCategory(mapping, row[categoryGroupCategoryIdx])
 
-		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory)
+		entry := ledgerEntry(row, accountIdx, dateIdx, payeeIdx, categoryGroupCategoryIdx, memoIdx, outflowIdx, inflowIdx, ledgerAccount, ledgerCategory, mapping)
 		if entry != "" {
 			entries = append(entries, entry)
 		}
