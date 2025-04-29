@@ -1,4 +1,4 @@
-module github.com/jaredtconnor/ynab_to_ledger_go
+module github.com/jaredtconnor/ynab_to_ledger
 
 go 1.21
 
