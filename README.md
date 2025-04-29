@@ -127,3 +127,89 @@ Multicolumn balance report by month with averaging:
 ```bash
 hledger balance -f ynab_ledger.dat --average --monthly --begin 2023-01-01 --end 2023-12-31
 ```
+
+## Development
+
+### Prerequisites
+
+- Go 1.23.2 or later
+- golangci-lint (for linting)
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jaredtconnor/ynab-to-ledger.git
+cd ynab-to-ledger
+```
+
+2. Install dependencies:
+```bash
+go mod download
+```
+
+3. Install golangci-lint:
+```bash
+# macOS
+brew install golangci-lint
+
+# Windows
+scoop install golangci-lint
+
+# Linux
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+```
+
+### Development Workflow
+
+1. Make your changes
+2. Run tests:
+```bash
+go test ./...
+```
+
+3. Run linter:
+```bash
+golangci-lint run
+```
+
+4. Build locally:
+```bash
+go build
+```
+
+### Release Process
+
+1. Update version in `cmd/version.go`
+2. Create and push a new tag:
+```bash
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+The GitHub Actions workflow will automatically:
+- Run tests and linting
+- Build binaries for multiple platforms
+- Create a GitHub release with the binaries
+- Generate release notes
+
+### CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **On Pull Requests and Pushes to Main:**
+  - Runs tests
+  - Runs linting checks
+  - Builds the project
+  - Checks code formatting
+
+- **On Tags (Releases):**
+  - All of the above
+  - Builds binaries for multiple platforms
+  - Creates a GitHub release
+  - Uploads built binaries as release assets
+
+Supported Platforms:
+- Linux (amd64, arm64)
+- macOS (amd64, arm64)
+- Windows (amd64)
