@@ -1,0 +1,26 @@
+name: Release
+on:
+  push:
+    tags: ['v*']          # v1.2.3 → release
+
+permissions:
+  contents: write         # allow create/upload release assets
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5  # official action  [oai_citation:1‡GoReleaser](https://goreleaser.com/ci/actions/?utm_source=chatgpt.com)
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

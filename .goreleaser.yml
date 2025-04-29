@@ -1,0 +1,12 @@
+project_name: convert
+builds:
+  - main: ./cmd/convert
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+checksum:
+  name_template: "checksums.txt"
+release:
+  draft: false
+  prerelease: auto     # tag that contains "-" → prereleases
